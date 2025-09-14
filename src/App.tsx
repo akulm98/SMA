@@ -177,17 +177,49 @@ function App() {
             
             {/* CSV Format Guide */}
             <div className="mt-8 bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">CSV Format Guide</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">CSV Format Guide</h3>
+                <button
+                  onClick={() => {
+                    const templateData = [
+                      ['symbol', 'quantity', 'purchase_price', 'purchase_date'],
+                      ['RELIANCE', '100', '2450.50', '2024-01-15'],
+                      ['TCS', '50', '3200.75', '2024-01-20'],
+                      ['INFY', '75', '1800.25', '2024-02-01'],
+                      ['HDFCBANK', '25', '1650.00', '2024-02-10'],
+                      ['ICICIBANK', '60', '950.80', '2024-02-15']
+                    ];
+
+                    const csvContent = templateData.map(row => row.join(',')).join('\n');
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    
+                    if (link.download !== undefined) {
+                      const url = URL.createObjectURL(blob);
+                      link.setAttribute('href', url);
+                      link.setAttribute('download', 'stock_portfolio_template.csv');
+                      link.style.visibility = 'hidden';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }
+                  }}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 space-x-2"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download Template</span>
+                </button>
+              </div>
               <div className="space-y-3">
                 <p className="text-sm text-gray-600">
-                  Your CSV file should contain at least a <strong>symbol</strong> column with stock symbols. Additional columns will be preserved.
+                  Your CSV file should contain at least a <strong>symbol</strong> column with stock symbols. Additional columns will be preserved. Download the template below to get started quickly.
                 </p>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <code className="text-sm font-mono">
-                    symbol,quantity,purchase_price<br/>
-                    RELIANCE,100,2450<br/>
-                    TCS,50,3200<br/>
-                    INFY,75,1800
+                    symbol,quantity,purchase_price,purchase_date<br/>
+                    RELIANCE,100,2450.50,2024-01-15<br/>
+                    TCS,50,3200.75,2024-01-20<br/>
+                    INFY,75,1800.25,2024-02-01
                   </code>
                 </div>
               </div>

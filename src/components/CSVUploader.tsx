@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Upload, FileText, AlertCircle } from 'lucide-react';
+import { Upload, FileText, AlertCircle, Download } from 'lucide-react';
 
 interface CSVUploaderProps {
   onDataLoaded: (data: any[]) => void;
@@ -11,6 +11,30 @@ const CSVUploader: React.FC<CSVUploaderProps> = ({ onDataLoaded, loading }) => {
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const downloadTemplate = () => {
+    const templateData = [
+      ['symbol', 'quantity', 'purchase_price', 'purchase_date'],
+      ['RELIANCE', '100', '2450.50', '2024-01-15'],
+      ['TCS', '50', '3200.75', '2024-01-20'],
+      ['INFY', '75', '1800.25', '2024-02-01'],
+      ['HDFCBANK', '25', '1650.00', '2024-02-10'],
+      ['ICICIBANK', '60', '950.80', '2024-02-15']
+    ];
+
+    const csvContent = templateData.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'stock_portfolio_template.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
   const parseCSV = (text: string): any[] => {
     const lines = text.trim().split('\n');
     if (lines.length < 2) {
