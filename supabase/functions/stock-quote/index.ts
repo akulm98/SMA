@@ -46,45 +46,103 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Note: In a real application, you would need to:
-    // 1. Set up proper authentication with Upstox API
-    // 2. Store your API key securely in environment variables
-    // 3. Handle OAuth flow if required
+    // Get access token from environment variables
+    const accessToken = Deno.env.get('UPSTOX_ACCESS_TOKEN');
     
-    // For demo purposes, we'll return mock data
-    // Replace this with actual Upstox API call:
-    // const upstoxUrl = `https://api.upstox.com/v2/market-quote/ohlc?symbol=${symbol}`;
-    // const response = await fetch(upstoxUrl, {
-    //   headers: {
-    //     'Authorization': `Bearer ${Deno.env.get('UPSTOX_ACCESS_TOKEN')}`,
-    //     'Accept': 'application/json'
-    //   }
-    // });
+    if (!accessToken) {
+      return new Response(
+        JSON.stringify({ error: "Upstox access token not configured" }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
 
-    // Mock data for demonstration - replace with actual API call
-    const mockData = {
-      companyName: symbol === 'RELIANCE' ? 'Reliance Industries Ltd.' :
-                   symbol === 'TCS' ? 'Tata Consultancy Services Ltd.' :
-                   symbol === 'INFY' ? 'Infosys Ltd.' :
-                   symbol === 'HDFCBANK' ? 'HDFC Bank Ltd.' :
-                   symbol === 'ICICIBANK' ? 'ICICI Bank Ltd.' :
-                   `${symbol} Ltd.`,
-      ltp: Math.random() * 1000 + 100,
-      open: Math.random() * 1000 + 100,
-      high: Math.random() * 1000 + 150,
-      low: Math.random() * 1000 + 50,
-      previousClose: Math.random() * 1000 + 100,
-      volume: Math.floor(Math.random() * 1000000) + 10000,
-    };
+    // Make actual API call to Upstox
+    const upstoxUrl = `https://api.upstox.com/v2/market-quote/ohlc?symbol=NSE_EQ%7C${symbol}`;
+    
+    const upstoxResponse = await fetch(upstoxUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!upstoxResponse.ok) {
+      const errorText = await upstoxResponse.text();
+      console.error(`Upstox API error for ${symbol}:`, errorText);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: `Failed to fetch data for ${symbol}`,
+          details: errorText
+        }),
+        {
+          status: upstoxResponse.status,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    const upstoxData: UpstoxQuoteResponse = await upstoxResponse.json();
+    
+    if (upstoxData.status !== 'success' || !upstoxData.data) {
+      return new Response(
+        JSON.stringify({ 
+          error: `No data available for ${symbol}`,
+          details: upstoxData
+        }),
+        {
+          status: 404,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    // Extract data for the symbol
+    const symbolKey = `NSE_EQ|${symbol}`;
+    const stockData = upstoxData.data[symbolKey];
+    
+    if (!stockData) {
+      return new Response(
+        JSON.stringify({ 
+          error: `No data found for symbol ${symbol}`,
+          availableSymbols: Object.keys(upstoxData.data)
+        }),
+        {
+          status: 404,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
 
     // Calculate change and change percentage
-    const change = mockData.ltp - mockData.previousClose;
-    const changePercent = (change / mockData.previousClose) * 100;
+    const change = stockData.ltp - stockData.prev_close_price;
+    const changePercent = (change / stockData.prev_close_price) * 100;
 
     const responseData = {
-      ...mockData,
+      companyName: symbol, // You might want to maintain a mapping of symbols to company names
+      ltp: stockData.ltp,
+      open: stockData.ohlc.open,
+      high: stockData.ohlc.high,
+      low: stockData.ohlc.low,
+      previousClose: stockData.prev_close_price,
       change: parseFloat(change.toFixed(2)),
       changePercent: parseFloat(changePercent.toFixed(2)),
+      volume: stockData.volume,
     };
 
     return new Response(
