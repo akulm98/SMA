@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import CSVUploader from './components/CSVUploader';
 import StockTable from './components/StockTable';
 import { Stock } from './types/Stock';
-import { TrendingUp, Database } from 'lucide-react';
+import { TrendingUp, Database, Download } from 'lucide-react';
 
 function App() {
   const [stocks, setStocks] = useState<Stock[]>([]);
